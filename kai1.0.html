@@ -1,0 +1,2788 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title id="pageTitle">个人本地导航</title>
+    <style>
+        /* ===== 全局重置与变量 ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft Yahei", sans-serif;
+        }
+        :root {
+            --bg-opacity: 0.9;
+            --bg-blur: 0px;
+            --card-blur: 12px;
+            --mask-opacity: 0.2;
+            --mask-color: #000;
+            --bg-glass-opacity: 0;
+            --text-color: #222222;
+            --search-font: 18px;
+            --search-height: 56px;
+            --search-width: 480px;
+            --search-radius: 12px;
+            --search-offset-x: 0px;
+            --search-offset-y: 0px;
+            --engine-width: 70px;
+            --btn-padding: 8px 12px;
+            --btn-font: 14px;
+            --calendar-font: 16px;
+            --widget-padding: 18px 28px;
+            --link-card-width: 130px;
+            --link-icon-size: 48px;
+            --link-font: 14px;
+            --date-font-weight: 400;
+            --time-font-weight: 300;
+        }
+        body.dark {
+            --text-color: #f8fafc;
+            --mask-color: #000;
+        }
+        body.minimal .nav-item,
+        body.minimal .widget-box {
+            display: none !important;
+        }
+        body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            color: var(--text-color);
+            user-select: none;
+        }
+
+        /* ===== 背景 ===== */
+        .bg-box {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -3;
+            opacity: var(--bg-opacity);
+            filter: blur(var(--bg-blur));
+            transition: all 0.4s;
+            overflow: hidden;
+        }
+        .bg-box video,
+        .bg-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .bg-glass {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.6);
+            opacity: var(--bg-glass-opacity);
+            pointer-events: none;
+            transition: opacity 0.4s;
+            z-index: 1;
+        }
+        body.dark .bg-glass {
+            background: rgba(0, 0, 0, 0.6);
+        }
+        .mask {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--mask-color);
+            opacity: var(--mask-opacity);
+            z-index: -2;
+            transition: all 0.4s;
+        }
+
+        /* ===== 快速栏 ===== */
+        .quick-bar {
+            position: fixed;
+            right: 10px;
+            bottom: 24px;
+            z-index: 99;
+            transition: transform 0.3s, opacity 0.3s;
+            transform: translateX(0);
+            opacity: 1;
+        }
+        .quick-bar.hide {
+            transform: translateX(70px);
+            opacity: 0;
+        }
+        .quick-bar:hover {
+            transform: translateX(0) !important;
+            opacity: 1 !important;
+        }
+        .quick-bar button {
+            padding: var(--btn-padding);
+            margin: 4px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            backdrop-filter: blur(var(--card-blur));
+            background: rgba(255, 255, 255, 0.2);
+            color: var(--text-color);
+            white-space: nowrap;
+            font-size: var(--btn-font);
+            transition: background 0.2s;
+        }
+        .quick-bar button:hover {
+            background: rgba(255, 255, 255, 0.35);
+        }
+        body.dark .quick-bar button:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        /* ===== 设置面板 ===== */
+        .setting-panel {
+            position: fixed;
+            right: -420px;
+            top: 0;
+            width: 400px;
+            max-width: 100vw;
+            height: 100vh;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(15px);
+            transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow-y: auto;
+            padding: 20px;
+            z-index: 100;
+            color: #222;
+            box-shadow: -4px 0 30px rgba(0, 0, 0, 0.1);
+        }
+        .setting-panel.open {
+            right: 0;
+        }
+        body.dark .setting-panel {
+            background: rgba(20, 20, 20, 0.92);
+            color: #f8fafc;
+        }
+        .setting-panel .close-btn {
+            position: absolute;
+            top: 12px;
+            right: 16px;
+            font-size: 28px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            color: inherit;
+        }
+        .setting-block {
+            margin: 12px 0;
+            padding: 15px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.05);
+        }
+        body.dark .setting-block {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 8px;
+            margin: 6px 0;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            outline: none;
+            color: inherit;
+            background: rgba(255, 255, 255, 0.3);
+        }
+        body.dark input,
+        body.dark select {
+            background: rgba(0, 0, 0, 0.3);
+            border-color: #444;
+        }
+        .setting-tip {
+            font-size: 12px;
+            opacity: 0.7;
+            margin: 2px 0 8px;
+        }
+        .btn-primary {
+            background: #4a9eff;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 6px;
+        }
+        .btn-primary:hover {
+            background: #3a8aef;
+        }
+        .check-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 4px 0;
+            cursor: pointer;
+        }
+        hr {
+            margin: 12px 0;
+            border: none;
+            border-top: 1px solid rgba(0, 0, 0, 0.08);
+        }
+        body.dark hr {
+            border-color: rgba(255, 255, 255, 0.08);
+        }
+        .setting-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+            margin: 4px 0;
+        }
+        .setting-row label {
+            font-size: 13px;
+            opacity: 0.8;
+            min-width: 60px;
+        }
+        .setting-row select {
+            flex: 1;
+            min-width: 80px;
+        }
+
+        /* ===== 搜索栏 ===== */
+        .search-wrap {
+            position: absolute;
+            top: calc(120px + var(--search-offset-y));
+            left: calc(50% + var(--search-offset-x));
+            transform: translateX(-50%);
+            z-index: 10;
+            display: flex;
+            align-items: stretch;
+            width: var(--search-width);
+            max-width: 95%;
+            height: var(--search-height);
+            border-radius: var(--search-radius);
+            backdrop-filter: blur(var(--card-blur));
+            background: rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+        }
+        .search-engine {
+            width: var(--engine-width);
+            height: 100%;
+            border: none;
+            background: transparent;
+            color: var(--text-color);
+            font-size: var(--btn-font);
+            text-align: center;
+            outline: none;
+            padding: 0 4px;
+            flex-shrink: 0;
+            -webkit-appearance: none;
+            appearance: none;
+            cursor: pointer;
+        }
+        .search-engine option {
+            color: #222;
+            background: #fff;
+        }
+        body.dark .search-engine option {
+            color: #f8fafc;
+            background: #222;
+        }
+        .search-engine.hidden {
+            display: none;
+        }
+        .search-form {
+            flex: 1;
+            height: 100%;
+            display: flex;
+            min-width: 0;
+        }
+        .search-input {
+            width: 100%;
+            height: 100%;
+            padding: 0 16px;
+            border: none;
+            background: transparent;
+            font-size: var(--search-font);
+            outline: none;
+            color: var(--text-color);
+            min-width: 0;
+        }
+        .search-input::placeholder {
+            color: var(--text-color);
+            opacity: 0.6;
+        }
+
+        /* ===== 顶部日期/时间 ===== */
+        .widget-box {
+            position: absolute;
+            top: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            padding: var(--widget-padding);
+            border-radius: 16px;
+            color: var(--text-color);
+            z-index: 5;
+            pointer-events: none;
+            cursor: pointer;
+        }
+        .widget-box.hidden {
+            display: none;
+        }
+        .widget-box .top-date {
+            font-size: var(--calendar-font);
+            opacity: 0.85;
+            font-weight: var(--date-font-weight);
+        }
+        .widget-box .top-time {
+            font-size: calc(var(--calendar-font)*1.8);
+            letter-spacing: 2px;
+            margin-top: 4px;
+            font-weight: var(--time-font-weight);
+            opacity: 0.9;
+        }
+
+        /* ===== 卡片 ===== */
+        .links-wrap {
+            position: relative;
+            width: 100%;
+            height: calc(100% - 220px);
+            z-index: 1;
+        }
+        .nav-item {
+            position: absolute;
+            text-align: center;
+            cursor: grab;
+            padding: 12px 14px;
+            border-radius: var(--card-radius);
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(var(--card-blur));
+            transition: box-shadow 0.2s, transform 0.1s;
+            color: var(--text-color);
+            z-index: 20;
+            touch-action: none;
+            min-width: 60px;
+            min-height: 60px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+        }
+        body.dark .nav-item {
+            background: rgba(0, 0, 0, 0.25);
+        }
+        .nav-item.no-glass {
+            background: transparent !important;
+            backdrop-filter: none !important;
+            box-shadow: none !important;
+        }
+        .nav-item:active {
+            cursor: grabbing;
+            transform: scale(0.97);
+        }
+        .nav-item .link-inner {
+            text-decoration: none;
+            display: block;
+            font-size: var(--link-font);
+        }
+        .nav-icon {
+            width: var(--link-icon-size);
+            height: var(--link-icon-size);
+            margin: 0 auto 10px;
+            background: rgba(200, 200, 200, 0.5);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: calc(var(--link-icon-size)*0.45);
+            font-weight: bold;
+            transition: background 0.2s;
+            overflow: hidden;
+        }
+        .nav-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 50%;
+        }
+        body.dark .nav-icon {
+            background: rgba(60, 60, 60, 0.6);
+        }
+        .nav-item:hover .nav-icon {
+            background: rgba(255, 255, 255, 0.4);
+        }
+        body.dark .nav-item:hover .nav-icon {
+            background: rgba(100, 100, 100, 0.6);
+        }
+
+        .del-btn {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            width: 22px;
+            height: 22px;
+            background: rgba(244, 67, 54, 0.7);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 22px;
+            text-align: center;
+            z-index: 30;
+        }
+        .del-btn.hidden {
+            display: none;
+        }
+        .nav-item:hover .del-btn,
+        .nav-item.touch-show .del-btn {
+            opacity: 1;
+        }
+        .del-btn:hover {
+            background: #f44336;
+        }
+
+        .widget-content {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            transform-origin: center center;
+        }
+        .widget-note {
+            font-size: 14px;
+            word-break: break-all;
+            max-height: 100%;
+            overflow-y: auto;
+            padding: 4px;
+            width: 100%;
+        }
+        .widget-weather {
+            font-size: 20px;
+        }
+        .widget-custom iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: transparent;
+        }
+
+        /* ===== 音乐播放器 ===== */
+        .music-player {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+            font-size: 12px;
+            overflow: hidden;
+        }
+        .music-player .song-name {
+            font-size: 13px;
+            font-weight: bold;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+            text-align: center;
+            margin-bottom: 2px;
+        }
+        .music-player .controls {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            width: 100%;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .music-player .controls button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 2px 6px;
+            color: inherit;
+            transition: background 0.2s;
+        }
+        .music-player .controls button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        .music-player .progress-wrap {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin: 2px 0;
+        }
+        .music-player .progress-wrap input[type="range"] {
+            flex: 1;
+            height: 3px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+            outline: none;
+            padding: 0;
+        }
+        .music-player .progress-wrap input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            cursor: pointer;
+        }
+        .music-player .time-label {
+            font-size: 10px;
+            opacity: 0.7;
+            min-width: 32px;
+            text-align: center;
+        }
+        .music-player .lyrics-area {
+            width: 100%;
+            height: 40px;
+            overflow: hidden;
+            text-align: center;
+            font-size: 11px;
+            opacity: 0.8;
+            margin-top: 2px;
+            position: relative;
+        }
+        .music-player .lyrics-area .lyrics-scroll {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            transition: transform 0.3s ease;
+        }
+        .music-player .lyrics-area .lyric-line {
+            padding: 2px 0;
+            opacity: 0.4;
+            transition: opacity 0.3s;
+            line-height: 1.4;
+        }
+        .music-player .lyrics-area .lyric-line.active {
+            opacity: 1;
+            font-weight: bold;
+        }
+        .music-player .file-btn {
+            font-size: 10px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            padding: 2px 8px;
+            cursor: pointer;
+            color: inherit;
+            margin-top: 2px;
+        }
+        .music-player .file-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        /* ===== 卡片设置浮窗 ===== */
+        #cardSettingsOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            z-index: 200;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        #cardSettingsOverlay.active {
+            display: flex;
+        }
+        #cardSettingsPanel {
+            background: rgba(30, 30, 30, 0.92);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 24px;
+            width: 380px;
+            max-width: 92%;
+            color: #eee;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        #cardSettingsPanel h3 {
+            margin-bottom: 16px;
+            text-align: center;
+            font-weight: 300;
+        }
+        #cardSettingsPanel .setting-row {
+            margin: 8px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        #cardSettingsPanel .setting-row label {
+            font-size: 13px;
+            opacity: 0.8;
+            display: flex;
+            justify-content: space-between;
+        }
+        #cardSettingsPanel .setting-row input[type="range"] {
+            width: 100%;
+            -webkit-appearance: none;
+            appearance: none;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+            height: 4px;
+            outline: none;
+        }
+        #cardSettingsPanel .setting-row input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #4a9eff;
+            cursor: pointer;
+        }
+        #cardSettingsPanel .color-options {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 4px;
+        }
+        #cardSettingsPanel .color-options button {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: border 0.2s;
+            flex-shrink: 0;
+        }
+        #cardSettingsPanel .color-options button:hover {
+            border-color: #fff;
+        }
+        #cardSettingsPanel .color-options button.active {
+            border-color: #4a9eff;
+        }
+        #cardSettingsPanel .color-picker-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 6px;
+        }
+        #cardSettingsPanel .color-picker-wrap input[type="color"] {
+            width: 36px;
+            height: 36px;
+            border: none;
+            padding: 0;
+            background: transparent;
+            cursor: pointer;
+        }
+        #cardSettingsPanel .color-picker-wrap input[type="text"] {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            padding: 4px 8px;
+            color: #eee;
+            font-size: 13px;
+            outline: none;
+        }
+        #cardSettingsPanel .btn-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+            justify-content: flex-end;
+        }
+        #cardSettingsPanel .btn-group button {
+            padding: 6px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        #cardSettingsPanel .btn-group .btn-close {
+            background: rgba(255, 255, 255, 0.1);
+            color: #eee;
+        }
+        #cardSettingsPanel .btn-group .btn-close:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        #cardSettingsPanel .btn-group .btn-save {
+            background: #4a9eff;
+            color: #fff;
+        }
+        #cardSettingsPanel .btn-group .btn-save:hover {
+            background: #3a8aef;
+        }
+        #cardSettingsPanel .toggle-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 6px 0;
+        }
+        #cardSettingsPanel .toggle-row label {
+            font-size: 13px;
+            opacity: 0.8;
+        }
+        #cardSettingsPanel .toggle-row input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #4a9eff;
+            cursor: pointer;
+        }
+        #cardSettingsPanel .icon-input-row {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            margin: 6px 0;
+        }
+        #cardSettingsPanel .icon-input-row input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            padding: 4px 8px;
+            color: #eee;
+            font-size: 13px;
+            outline: none;
+        }
+        #cardSettingsPanel .color-input-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin: 4px 0;
+        }
+        #cardSettingsPanel .color-input-group input[type="color"] {
+            width: 36px;
+            height: 36px;
+            border: none;
+            padding: 0;
+            background: transparent;
+            cursor: pointer;
+        }
+        #cardSettingsPanel .color-input-group input[type="text"] {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            padding: 4px 8px;
+            color: #eee;
+            font-size: 13px;
+            outline: none;
+        }
+
+        /* ===== 背景类型标签 ===== */
+        .bg-type-badge {
+            display: inline-block;
+            font-size: 11px;
+            padding: 2px 10px;
+            border-radius: 12px;
+            background: rgba(74, 158, 255, 0.2);
+            color: #4a9eff;
+            margin-top: 4px;
+        }
+        body.dark .bg-type-badge {
+            background: rgba(74, 158, 255, 0.15);
+            color: #7ab7ff;
+        }
+
+        /* ===== 响应式 ===== */
+        @media (max-width:600px) {
+            .search-wrap {
+                top: 100px;
+            }
+            .widget-box {
+                padding: 12px 16px;
+                top: 20px;
+            }
+            .widget-box .top-date {
+                font-size: 14px;
+            }
+            .widget-box .top-time {
+                font-size: 24px;
+            }
+            .setting-panel {
+                width: 100%;
+                right: -100%;
+            }
+            .nav-item {
+                width: 110px;
+                padding: 12px;
+            }
+            .nav-icon {
+                width: 40px;
+                height: 40px;
+            }
+            .quick-bar button {
+                font-size: 12px;
+                padding: 6px 10px;
+            }
+            #cardSettingsPanel {
+                width: 95%;
+                padding: 16px;
+            }
+            .setting-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-box" id="bgBox">
+        <div class="bg-glass" id="bgGlass"></div>
+    </div>
+    <div class="mask"></div>
+
+    <div class="widget-box" id="dateBox">
+        <div class="top-date" id="topDate">2026年07月22日</div>
+        <div class="top-time" id="topTime">00:00:00</div>
+    </div>
+
+    <div class="search-wrap" id="searchWrap">
+        <select class="search-engine" id="searchEngine">
+            <option value="bing">必应</option>
+            <option value="baidu">百度</option>
+        </select>
+        <form class="search-form" id="searchForm">
+            <input class="search-input" id="searchInput" placeholder="输入内容搜索..." autocomplete="off">
+        </form>
+    </div>
+
+    <div class="links-wrap" id="navContainer"></div>
+
+    <div class="quick-bar" id="quickBar">
+        <button id="themeToggle">🌓 切换</button>
+        <button id="openSetting">⚙️ 设置</button>
+        <button id="minimalMode">📐 极简</button>
+        <button id="exportBtn">📤 导出</button>
+        <button id="importBtn">📥 导入</button>
+        <input type="file" id="importFile" accept=".json" style="display:none;">
+    </div>
+
+    <div class="setting-panel" id="settingPanel">
+        <button class="close-btn" id="closeSetting">✕</button>
+        <h3 style="margin-bottom:15px;">⚙️ 页面设置</h3>
+
+        <div class="setting-block">
+            <h4>📄 页面标题</h4>
+            <input type="text" id="pageTitleInput" placeholder="输入标题" value="个人本地导航">
+        </div>
+
+        <div class="setting-block">
+            <h4>🖼️ 背景（自动保存）</h4>
+            <p>白昼背景</p>
+            <input type="file" id="lightBgFile" accept="image/*,video/*">
+            <div id="lightBgStatus" style="font-size:12px;opacity:0.7;margin:2px 0 6px;">未上传</div>
+            <p>黑夜背景</p>
+            <input type="file" id="darkBgFile" accept="image/*,video/*">
+            <div id="darkBgStatus" style="font-size:12px;opacity:0.7;margin:2px 0 6px;">未上传</div>
+            <p class="setting-tip">支持图片 (jpg, png, gif, webp, svg, bmp) 和视频 (mp4, webm, ogg, mov) 等常见格式</p>
+            <p>背景模糊度 <span id="blurVal">0</span>px</p>
+            <input type="range" id="bgBlur" min="0" max="30" value="0">
+            <p>背景透明度 <span id="opacityVal">0.9</span></p>
+            <input type="range" id="bgOpacity" min="0.3" max="1" step="0.01" value="0.9">
+            <p>背景毛玻璃强度 <span id="bgGlassVal">0</span>%</p>
+            <input type="range" id="bgGlass" min="0" max="100" value="0">
+        </div>
+
+        <div class="setting-block">
+            <h4>🔍 搜索栏</h4>
+            <p>宽度 <span id="searchWidthVal">480</span>px</p>
+            <input type="range" id="searchWidth" min="200" max="800" value="480">
+            <p>高度 <span id="searchHeightVal">56</span>px</p>
+            <input type="range" id="searchHeight" min="40" max="80" value="56">
+            <p>圆角 <span id="searchRadiusVal">12</span>px</p>
+            <input type="range" id="searchRadius" min="0" max="30" value="12">
+            <p>引擎宽度 <span id="engineWidthVal">70</span>px</p>
+            <input type="range" id="engineWidth" min="50" max="120" value="70">
+            <label class="check-label"><input type="checkbox" id="showEngine"> 显示搜索引擎</label>
+            <p>水平偏移 <span id="searchOffsetXVal">0</span>px</p>
+            <input type="range" id="searchOffsetX" min="-600" max="600" value="0">
+            <p>垂直偏移 <span id="searchOffsetYVal">0</span>px</p>
+            <input type="range" id="searchOffsetY" min="-200" max="600" value="0">
+        </div>
+
+        <div class="setting-block">
+            <h4>📅 顶部显示</h4>
+            <select id="topDisplay">
+                <option value="both">日期 + 时间</option>
+                <option value="date">仅日期</option>
+                <option value="time">仅时间</option>
+                <option value="none">隐藏</option>
+            </select>
+            <p>日期字体大小 <span id="calendarFontVal">16</span>px</p>
+            <input type="range" id="calendarFont" min="12" max="30" value="16">
+
+            <div class="setting-row" style="margin-top:8px;">
+                <label style="min-width:80px;">统一修改</label>
+                <label class="check-label" style="margin:0;">
+                    <input type="checkbox" id="dateTimeUnified" checked>
+                    日期和时间使用相同字体粗细
+                </label>
+            </div>
+
+            <div class="setting-row">
+                <label for="dateFontWeight">日期字体</label>
+                <select id="dateFontWeight" style="flex:1;min-width:80px;">
+                    <option value="100">细体 (100)</option>
+                    <option value="200">特细 (200)</option>
+                    <option value="300">轻细 (300)</option>
+                    <option value="400">常规 (400)</option>
+                    <option value="500">中等 (500)</option>
+                    <option value="600">半粗 (600)</option>
+                    <option value="700">粗体 (700)</option>
+                    <option value="800">特粗 (800)</option>
+                    <option value="900">黑体 (900)</option>
+                    <option value="bold">粗体</option>
+                    <option value="bolder">特粗</option>
+                </select>
+            </div>
+
+            <div class="setting-row" id="timeFontRow">
+                <label for="timeFontWeight">时间字体</label>
+                <select id="timeFontWeight" style="flex:1;min-width:80px;">
+                    <option value="100">细体 (100)</option>
+                    <option value="200">特细 (200)</option>
+                    <option value="300">轻细 (300)</option>
+                    <option value="400">常规 (400)</option>
+                    <option value="500">中等 (500)</option>
+                    <option value="600">半粗 (600)</option>
+                    <option value="700">粗体 (700)</option>
+                    <option value="800">特粗 (800)</option>
+                    <option value="900">黑体 (900)</option>
+                    <option value="bold">粗体</option>
+                    <option value="bolder">特粗</option>
+                </select>
+            </div>
+            <p class="setting-tip">取消「统一修改」后可分别为日期和时间设置不同字体粗细</p>
+
+            <p style="margin-top:10px;">文字颜色</p>
+            <div class="color-input-group">
+                <input type="color" id="dateColorPicker" value="#222222">
+                <input type="text" id="dateColorText" placeholder="自定义颜色/渐变" value="#222222">
+            </div>
+            <div class="color-options" id="dateColorPresets" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
+                <button style="background:#222;" data-color="#222222"></button>
+                <button style="background:#ffffff;border:1px solid #aaa;" data-color="#ffffff"></button>
+                <button style="background:#ff6b6b;" data-color="#ff6b6b"></button>
+                <button style="background:#feca57;" data-color="#feca57"></button>
+                <button style="background:#48dbfb;" data-color="#48dbfb"></button>
+                <button style="background:#ff9ff3;" data-color="#ff9ff3"></button>
+                <button style="background:linear-gradient(90deg,#ff0000,#ff7700,#ffff00,#00ff00,#0000ff,#8b00ff);" data-color="rainbow" title="彩虹"></button>
+                <button style="background:linear-gradient(135deg,#ff6b6b,#feca57,#48dbfb,#ff9ff3);" data-color="rainbow2" title="炫彩"></button>
+                <button style="background:linear-gradient(90deg,#f7971e,#ffd200);" data-color="sunset" title="日落"></button>
+                <button style="background:linear-gradient(90deg,#2193b0,#6dd5ed);" data-color="ocean" title="海洋"></button>
+            </div>
+        </div>
+
+        <div class="setting-block">
+            <h4>🎨 全局外观</h4>
+            <p>卡片毛玻璃强度 <span id="cardBlurVal">12</span>px</p>
+            <input type="range" id="cardBlur" min="0" max="25" value="12">
+            <p>图标大小 <span id="linkIconSizeVal">48</span>px</p>
+            <input type="range" id="linkIconSize" min="32" max="70" value="48">
+            <p>新卡片默认宽度 <span id="linkCardWidthVal">130</span>px</p>
+            <input type="range" id="linkCardWidth" min="80" max="200" value="130">
+            <label class="check-label"><input type="checkbox" id="glassToggle" checked> 卡片毛玻璃效果</label>
+            <label class="check-label"><input type="checkbox" id="showDeleteBtn" checked> 显示删除按钮</label>
+            <label class="check-label"><input type="checkbox" id="snapToggle"> 吸附对齐</label>
+        </div>
+
+        <div class="setting-block">
+            <h4>➕ 添加内容</h4>
+            <p><strong>链接</strong></p>
+            <input placeholder="名称" id="linkName">
+            <input placeholder="网址 (http://)" id="linkUrl">
+            <input placeholder="自定义图标 (emoji/文字/图片URL) 可选" id="linkIcon">
+            <button class="btn-primary" id="addLinkBtn">添加链接</button>
+            <hr>
+            <p><strong>小工具</strong></p>
+            <select id="widgetType">
+                <option value="note">📝 便签</option>
+                <option value="weather">☀️ 天气</option>
+                <option value="music">🎵 音乐播放器</option>
+                <option value="custom">🔧 自定义HTML</option>
+            </select>
+            <div id="widgetExtra" style="margin-top:8px;">
+                <input placeholder="便签内容" id="noteContent" value="输入便签文字">
+                <input placeholder="城市" id="weatherCity" value="北京" style="display:none;">
+                <div id="customArea" style="display:none;">
+                    <textarea id="customCode" rows="4" placeholder="粘贴HTML代码"></textarea>
+                    <input type="file" id="customFile" accept=".html,.htm,.txt" style="margin-top:4px;">
+                </div>
+                <div id="musicArea" style="display:none;">
+                    <p class="setting-tip">🎵 双击音乐卡片选择音乐文件</p>
+                </div>
+            </div>
+            <button class="btn-primary" id="addWidgetBtn">添加小工具</button>
+        </div>
+
+        <div class="setting-block" style="background:rgba(255,200,50,0.1);border-left:3px solid #f0c040;">
+            <h4>💡 提示</h4>
+            <p class="setting-tip" style="opacity:0.9;margin:0;">
+                • <strong>双击卡片</strong> 可独立调整：宽/高/圆角/毛玻璃/文字颜色/图标<br>
+                • <strong>双击顶部</strong> 可快速修改颜色（与设置同步）<br>
+                • <strong>音乐卡片</strong> 双击后点击「选择音乐」添加歌曲<br>
+                • 背景图片/视频上传后自动保存，刷新页面不丢失<br>
+                • 链接图标自动从网站获取，如失败可自定义图标
+            </p>
+        </div>
+    </div>
+
+    <!-- 卡片设置浮窗 -->
+    <div id="cardSettingsOverlay">
+        <div id="cardSettingsPanel">
+            <h3>✏️ 卡片设置</h3>
+            <div class="setting-row">
+                <label>宽度 <span id="csWidthVal">130</span>px</label>
+                <input type="range" id="csWidth" min="60" max="300" value="130">
+            </div>
+            <div class="setting-row">
+                <label>高度 <span id="csHeightVal">120</span>px</label>
+                <input type="range" id="csHeight" min="60" max="300" value="120">
+            </div>
+            <div class="setting-row">
+                <label>圆角 <span id="csRadiusVal">12</span>px</label>
+                <input type="range" id="csRadius" min="0" max="40" value="12">
+            </div>
+            <div class="toggle-row">
+                <input type="checkbox" id="csGlass">
+                <label for="csGlass">启用毛玻璃</label>
+            </div>
+            <div class="setting-row">
+                <label>文字颜色</label>
+                <div class="color-options" id="csColorPresets">
+                    <button style="background:#222;" data-color="#222222"></button>
+                    <button style="background:#ffffff;border-color:#aaa;" data-color="#ffffff"></button>
+                    <button style="background:#ff6b6b;" data-color="#ff6b6b"></button>
+                    <button style="background:#feca57;" data-color="#feca57"></button>
+                    <button style="background:#48dbfb;" data-color="#48dbfb"></button>
+                    <button style="background:#ff9ff3;" data-color="#ff9ff3"></button>
+                    <button style="background:linear-gradient(90deg,#ff0000,#ff7700,#ffff00,#00ff00,#0000ff,#8b00ff);" data-color="rainbow" title="彩虹"></button>
+                    <button style="background:linear-gradient(135deg,#ff6b6b,#feca57,#48dbfb,#ff9ff3);" data-color="rainbow2" title="炫彩"></button>
+                    <button style="background:linear-gradient(90deg,#f7971e,#ffd200);" data-color="sunset" title="日落"></button>
+                    <button style="background:linear-gradient(90deg,#2193b0,#6dd5ed);" data-color="ocean" title="海洋"></button>
+                </div>
+                <div class="color-picker-wrap">
+                    <input type="color" id="csColorPicker" value="#222222">
+                    <input type="text" id="csColorText" placeholder="自定义颜色/渐变" value="#222222">
+                </div>
+            </div>
+            <div class="setting-row">
+                <label>自定义图标 (emoji/文字/图片URL)</label>
+                <div class="icon-input-row">
+                    <input type="text" id="csIcon" placeholder="输入图标" value="">
+                </div>
+            </div>
+            <div class="btn-group">
+                <button class="btn-close" id="csCancel">取消</button>
+                <button class="btn-save" id="csSave">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // ============================================================
+            // IndexedDB 工具
+            // ============================================================
+            const DB_NAME = 'NavBackgroundDB';
+            const STORE_NAME = 'files';
+            let db = null;
+
+            function openDB() {
+                return new Promise((resolve, reject) => {
+                    if (db) { resolve(db); return; }
+                    const request = indexedDB.open(DB_NAME, 1);
+                    request.onupgradeneeded = function(e) {
+                        const db = e.target.result;
+                        if (!db.objectStoreNames.contains(STORE_NAME)) {
+                            db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                        }
+                    };
+                    request.onsuccess = function(e) {
+                        db = e.target.result;
+                        resolve(db);
+                    };
+                    request.onerror = function(e) {
+                        reject(e.target.error);
+                    };
+                });
+            }
+
+            function saveFileToDB(id, blob, type) {
+                return openDB().then(db => {
+                    return new Promise((resolve, reject) => {
+                        const tx = db.transaction(STORE_NAME, 'readwrite');
+                        const store = tx.objectStore(STORE_NAME);
+                        const record = { id, blob, type };
+                        const request = store.put(record);
+                        request.onsuccess = () => resolve();
+                        request.onerror = () => reject(request.error);
+                    });
+                });
+            }
+
+            function getFileFromDB(id) {
+                return openDB().then(db => {
+                    return new Promise((resolve, reject) => {
+                        const tx = db.transaction(STORE_NAME, 'readonly');
+                        const store = tx.objectStore(STORE_NAME);
+                        const request = store.get(id);
+                        request.onsuccess = () => resolve(request.result);
+                        request.onerror = () => reject(request.error);
+                    });
+                });
+            }
+
+            function deleteFileFromDB(id) {
+                return openDB().then(db => {
+                    return new Promise((resolve, reject) => {
+                        const tx = db.transaction(STORE_NAME, 'readwrite');
+                        const store = tx.objectStore(STORE_NAME);
+                        const request = store.delete(id);
+                        request.onsuccess = () => resolve();
+                        request.onerror = () => reject(request.error);
+                    });
+                });
+            }
+
+            // ============================================================
+            // 默认配置
+            // ============================================================
+            const defaultConfig = {
+                theme: 'light',
+                minimal: false,
+                lightBgKey: null,
+                darkBgKey: null,
+                lightBgType: null,
+                darkBgType: null,
+                lightBg: '',
+                darkBg: '',
+                bgOpacity: 0.9,
+                bgBlur: 0,
+                bgGlass: 0,
+                cardBlur: 12,
+                searchFont: 18,
+                searchHeight: 56,
+                searchWidth: 480,
+                searchRadius: 12,
+                searchOffsetX: 0,
+                searchOffsetY: 0,
+                engineWidth: 70,
+                showEngine: true,
+                topDisplay: 'both',
+                calendarFont: 16,
+                dateFontWeight: '400',
+                timeFontWeight: '300',
+                dateTimeUnified: true,
+                dateTextColor: '#222222',
+                linkCardWidth: 130,
+                linkIconSize: 48,
+                searchEngine: 'bing',
+                snapEnabled: false,
+                glassEnabled: true,
+                showDeleteBtn: true,
+                pageTitle: '个人本地导航',
+                items: []
+            };
+
+            let config;
+            try {
+                const stored = localStorage.getItem('navConfig');
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    config = Object.assign({}, defaultConfig, parsed);
+                    if (!Array.isArray(config.items)) config.items = [];
+                    config.items = config.items.map(item => {
+                        if (!item.id) item.id = Date.now() + Math.random() * 1000;
+                        if (!item.type) item.type = 'link';
+                        if (!item.x) item.x = 300;
+                        if (!item.y) item.y = 320;
+                        if (!item.baseWidth) item.baseWidth = item.width || parseInt(getComputedStyle(document
+                            .documentElement).getPropertyValue('--link-card-width')) || 130;
+                        if (!item.baseHeight) item.baseHeight = item.height || 120;
+                        if (!item.width) item.width = item.baseWidth;
+                        if (!item.height) item.height = item.baseHeight;
+                        if (item.borderRadius === undefined) item.borderRadius = 12;
+                        if (item.glassEnabled === undefined) item.glassEnabled = true;
+                        if (!item.textColor) item.textColor = '#222222';
+                        if (item.type === 'link') {
+                            if (!item.url) item.url = '#';
+                            if (!item.name) item.name = '未命名';
+                            if (item.icon === undefined) item.icon = '';
+                        }
+                        if (item.type === 'note' && !item.content) item.content = '便签';
+                        if (item.type === 'weather' && !item.city) item.city = '北京';
+                        if (item.type === 'custom' && !item.code) item.code = '<p>自定义内容</p>';
+                        if (item.type === 'music') {
+                            if (!item.playlist) item.playlist = [];
+                            if (item.currentIndex === undefined) item.currentIndex = 0;
+                            if (item.isPlaying === undefined) item.isPlaying = false;
+                            if (!item.name) item.name = '音乐播放器';
+                        }
+                        return item;
+                    });
+                } else {
+                    config = JSON.parse(JSON.stringify(defaultConfig));
+                    config.items.push({
+                        id: 1,
+                        type: 'link',
+                        name: '必应搜索',
+                        url: 'https://cn.bing.com',
+                        x: 300,
+                        y: 320,
+                        width: 130,
+                        height: 120,
+                        baseWidth: 130,
+                        baseHeight: 120,
+                        borderRadius: 12,
+                        glassEnabled: true,
+                        textColor: '#222222',
+                        icon: ''
+                    });
+                }
+            } catch (e) {
+                config = JSON.parse(JSON.stringify(defaultConfig));
+                config.items.push({
+                    id: 1,
+                    type: 'link',
+                    name: '必应搜索',
+                    url: 'https://cn.bing.com',
+                    x: 300,
+                    y: 320,
+                    width: 130,
+                    height: 120,
+                    baseWidth: 130,
+                    baseHeight: 120,
+                    borderRadius: 12,
+                    glassEnabled: true,
+                    textColor: '#222222',
+                    icon: ''
+                });
+            }
+
+            let nextId = config.items.length ? Math.max(...config.items.map(i => i.id)) + 1 : 1;
+
+            // ============================================================
+            // 工具函数
+            // ============================================================
+            function saveConfig() { localStorage.setItem('navConfig', JSON.stringify(config)); }
+
+            function escapeHtml(str) { const d = document.createElement('div');
+                d.textContent = str; return d.innerHTML; }
+
+            function isValidUrl(url) { try { const u = new URL(url); return u.protocol === 'http:' || u.protocol ===
+                        'https:'; } catch (e) { return false; } }
+
+            function debounce(fn, delay = 300) { let timer; return function(...args) { clearTimeout(timer);
+                    timer = setTimeout(() => fn.apply(this, args), delay); }; }
+
+            function getExt(name) { return name.split('.').pop().toLowerCase(); }
+
+            function parseLRC(text) {
+                const lines = text.split('\n');
+                const lyrics = [];
+                const timeRegex = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/;
+                for (let line of lines) {
+                    line = line.trim();
+                    if (!line) continue;
+                    if (line.startsWith('[') && line.includes(':')) {
+                        const match = line.match(/\[([a-zA-Z]+):(.*)\]/);
+                        if (match) continue;
+                    }
+                    const times = [];
+                    let remaining = line;
+                    while (true) {
+                        const m = remaining.match(timeRegex);
+                        if (!m) break;
+                        const min = parseInt(m[1]),
+                            sec = parseInt(m[2]),
+                            ms = parseInt(m[3].padEnd(3, '0'));
+                        times.push(min * 60 + sec + ms / 1000);
+                        remaining = remaining.replace(m[0], '');
+                    }
+                    if (times.length > 0 && remaining.trim()) {
+                        for (let t of times) lyrics.push({ time: t, text: remaining.trim() });
+                    }
+                }
+                lyrics.sort((a, b) => a.time - b.time);
+                return lyrics;
+            }
+
+            // ============================================================
+            // 网站图标获取（双源备选）
+            // ============================================================
+            function getFavicon(url) {
+                try {
+                    const u = new URL(url);
+                    const domain = u.hostname;
+                    return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+                } catch (e) { return ''; }
+            }
+
+            function getFaviconFallback(url) {
+                try {
+                    const u = new URL(url);
+                    const domain = u.hostname;
+                    return `https://icons.duckduckgo.com/ip3/${domain}.ico`;
+                } catch (e) { return ''; }
+            }
+
+            // ============================================================
+            // 背景管理（重构：存储 { url, type }）
+            // ============================================================
+            let bgObjects = { light: null, dark: null };
+
+            function revokeObject(theme) {
+                if (bgObjects[theme]) {
+                    if (bgObjects[theme].url && bgObjects[theme].url.startsWith('blob:')) {
+                        URL.revokeObjectURL(bgObjects[theme].url);
+                    }
+                    bgObjects[theme] = null;
+                }
+            }
+
+            async function loadBackgroundFromIDB(theme) {
+                const key = theme === 'light' ? config.lightBgKey : config.darkBgKey;
+                if (key) {
+                    try {
+                        const record = await getFileFromDB(key);
+                        if (record && record.blob) {
+                            const blob = record.blob;
+                            const url = URL.createObjectURL(blob);
+                            const type = record.type || blob.type || 'image/*';
+                            revokeObject(theme);
+                            bgObjects[theme] = { url, type };
+                            return bgObjects[theme];
+                        }
+                    } catch (e) {
+                        console.warn('读取背景文件失败:', e);
+                    }
+                }
+                // 兼容旧 data URL
+                const dataUrl = theme === 'light' ? config.lightBg : config.darkBg;
+                if (dataUrl && dataUrl.startsWith('data:')) {
+                    let type = 'image/*';
+                    if (dataUrl.startsWith('data:video/')) type = 'video/*';
+                    else if (dataUrl.startsWith('data:image/')) type = 'image/*';
+                    revokeObject(theme);
+                    bgObjects[theme] = { url: dataUrl, type };
+                    return bgObjects[theme];
+                }
+                return null;
+            }
+
+            async function renderBackground() {
+                const box = document.getElementById('bgBox');
+                const glass = box.querySelector('.bg-glass');
+                // 清空但保留 glass
+                box.innerHTML = '';
+                if (glass) box.appendChild(glass);
+
+                const theme = config.theme;
+                let bg = null;
+
+                // 优先使用缓存
+                if (bgObjects[theme] && bgObjects[theme].url) {
+                    bg = bgObjects[theme];
+                } else {
+                    bg = await loadBackgroundFromIDB(theme);
+                }
+
+                // 应用背景样式
+                const glassEl = document.getElementById('bgGlass');
+                if (glassEl) glassEl.style.opacity = (config.bgGlass || 0) / 100;
+
+                if (bg && bg.url) {
+                    const isVideo = bg.type && bg.type.startsWith('video/');
+                    if (isVideo) {
+                        const video = document.createElement('video');
+                        video.src = bg.url;
+                        video.autoplay = true;
+                        video.loop = true;
+                        video.muted = true;
+                        video.playsInline = true;
+                        video.preload = 'metadata';
+                        video.className = 'bg-img';
+                        video.onerror = function() {
+                            console.warn('视频加载失败，尝试作为图片加载');
+                            // 如果视频加载失败，尝试作为图片
+                            const img = document.createElement('img');
+                            img.src = bg.url;
+                            img.className = 'bg-img';
+                            img.alt = '背景';
+                            img.onerror = function() { console.warn('背景加载失败'); };
+                            box.prepend(img);
+                        };
+                        box.prepend(video);
+                    } else {
+                        const img = document.createElement('img');
+                        img.src = bg.url;
+                        img.className = 'bg-img';
+                        img.alt = '背景';
+                        img.onerror = function() {
+                            console.warn('图片加载失败');
+                        };
+                        box.prepend(img);
+                    }
+                }
+
+                // 更新状态显示
+                updateBgStatus(theme, bg);
+            }
+
+            // ============================================================
+            // 背景状态显示
+            // ============================================================
+            function updateBgStatus(theme, bg) {
+                const id = theme === 'light' ? 'lightBgStatus' : 'darkBgStatus';
+                const el = document.getElementById(id);
+                if (!el) return;
+                if (bg && bg.url) {
+                    const type = bg.type || '未知';
+                    const isVideo = type.startsWith('video/');
+                    const icon = isVideo ? '🎬' : '🖼️';
+                    const shortType = type.replace('video/', '').replace('image/', '').split(';')[0] || '文件';
+                    el.textContent = `${icon} 已加载: ${shortType} (${isVideo ? '视频' : '图片'})`;
+                    el.style.color = '#4a9eff';
+                } else {
+                    el.textContent = '未上传背景';
+                    el.style.color = '';
+                }
+            }
+
+            // ============================================================
+            // 应用样式（仅样式，不加载背景文件）
+            // ============================================================
+            function applyStylesOnly() {
+                const root = document.documentElement;
+                root.style.setProperty('--bg-opacity', config.bgOpacity);
+                root.style.setProperty('--bg-blur', config.bgBlur + 'px');
+                root.style.setProperty('--bg-glass-opacity', (config.bgGlass || 0) / 100);
+                root.style.setProperty('--card-blur', config.cardBlur + 'px');
+                root.style.setProperty('--search-font', config.searchFont + 'px');
+                root.style.setProperty('--search-height', config.searchHeight + 'px');
+                root.style.setProperty('--search-width', config.searchWidth + 'px');
+                root.style.setProperty('--search-radius', config.searchRadius + 'px');
+                root.style.setProperty('--search-offset-x', config.searchOffsetX + 'px');
+                root.style.setProperty('--search-offset-y', config.searchOffsetY + 'px');
+                root.style.setProperty('--engine-width', config.engineWidth + 'px');
+                root.style.setProperty('--calendar-font', config.calendarFont + 'px');
+                root.style.setProperty('--link-card-width', config.linkCardWidth + 'px');
+                root.style.setProperty('--link-icon-size', config.linkIconSize + 'px');
+
+                const unified = config.dateTimeUnified !== false;
+                let dateWeight = config.dateFontWeight || '400';
+                let timeWeight = config.timeFontWeight || '300';
+                if (unified) { timeWeight = dateWeight; }
+                root.style.setProperty('--date-font-weight', dateWeight);
+                root.style.setProperty('--time-font-weight', timeWeight);
+
+                // 同步滑块显示
+                document.getElementById('bgBlur').value = config.bgBlur;
+                document.getElementById('bgOpacity').value = config.bgOpacity;
+                document.getElementById('bgGlass').value = config.bgGlass || 0;
+                document.getElementById('cardBlur').value = config.cardBlur;
+                document.getElementById('searchWidth').value = config.searchWidth;
+                document.getElementById('searchHeight').value = config.searchHeight;
+                document.getElementById('searchRadius').value = config.searchRadius;
+                document.getElementById('searchOffsetX').value = config.searchOffsetX;
+                document.getElementById('searchOffsetY').value = config.searchOffsetY;
+                document.getElementById('engineWidth').value = config.engineWidth;
+                document.getElementById('calendarFont').value = config.calendarFont;
+                document.getElementById('linkCardWidth').value = config.linkCardWidth;
+                document.getElementById('linkIconSize').value = config.linkIconSize;
+                document.getElementById('searchEngine').value = config.searchEngine;
+                document.getElementById('showEngine').checked = config.showEngine;
+                document.getElementById('topDisplay').value = config.topDisplay;
+                document.getElementById('glassToggle').checked = config.glassEnabled;
+                document.getElementById('showDeleteBtn').checked = config.showDeleteBtn;
+                document.getElementById('snapToggle').checked = config.snapEnabled;
+                document.getElementById('dateFontWeight').value = config.dateFontWeight || '400';
+                document.getElementById('timeFontWeight').value = config.timeFontWeight || '300';
+                document.getElementById('dateTimeUnified').checked = config.dateTimeUnified !== false;
+                document.getElementById('pageTitleInput').value = config.pageTitle || '个人本地导航';
+                document.title = config.pageTitle || '个人本地导航';
+
+                const timeRow = document.getElementById('timeFontRow');
+                const timeSelect = document.getElementById('timeFontWeight');
+                if (config.dateTimeUnified !== false) {
+                    timeRow.style.opacity = '0.4';
+                    timeSelect.disabled = true;
+                } else {
+                    timeRow.style.opacity = '1';
+                    timeSelect.disabled = false;
+                }
+
+                const dateColorText = document.getElementById('dateColorText');
+                const dateColorPicker = document.getElementById('dateColorPicker');
+                if (config.dateTextColor) {
+                    dateColorText.value = config.dateTextColor;
+                    if (config.dateTextColor.startsWith('#')) dateColorPicker.value = config.dateTextColor;
+                    else dateColorPicker.value = '#222222';
+                }
+
+                document.getElementById('blurVal').textContent = config.bgBlur;
+                document.getElementById('opacityVal').textContent = config.bgOpacity;
+                document.getElementById('bgGlassVal').textContent = config.bgGlass || 0;
+                document.getElementById('cardBlurVal').textContent = config.cardBlur;
+                document.getElementById('searchWidthVal').textContent = config.searchWidth;
+                document.getElementById('searchHeightVal').textContent = config.searchHeight;
+                document.getElementById('searchRadiusVal').textContent = config.searchRadius;
+                document.getElementById('searchOffsetXVal').textContent = config.searchOffsetX;
+                document.getElementById('searchOffsetYVal').textContent = config.searchOffsetY;
+                document.getElementById('engineWidthVal').textContent = config.engineWidth;
+                document.getElementById('calendarFontVal').textContent = config.calendarFont;
+                document.getElementById('linkCardWidthVal').textContent = config.linkCardWidth;
+                document.getElementById('linkIconSizeVal').textContent = config.linkIconSize;
+
+                document.body.classList.toggle('dark', config.theme === 'dark');
+                document.body.classList.toggle('minimal', config.minimal);
+
+                document.getElementById('searchEngine').classList.toggle('hidden', !config.showEngine);
+
+                const dateBox = document.getElementById('dateBox');
+                const topDate = document.getElementById('topDate');
+                const topTime = document.getElementById('topTime');
+                const mode = config.topDisplay || 'both';
+                if (mode === 'none') {
+                    dateBox.classList.add('hidden');
+                } else {
+                    dateBox.classList.remove('hidden');
+                    topDate.style.display = (mode === 'date' || mode === 'both') ? 'block' : 'none';
+                    topTime.style.display = (mode === 'time' || mode === 'both') ? 'block' : 'none';
+                    if (mode === 'date') topDate.style.marginBottom = '0';
+                    else topDate.style.marginBottom = '4px';
+                }
+
+                if (config.dateTextColor) {
+                    applyColorToElement(dateBox, config.dateTextColor);
+                }
+
+                // 不在这里调用 renderBackground，由调用者决定
+            }
+
+            // ============================================================
+            // 颜色应用
+            // ============================================================
+            function applyColorToElement(el, color) {
+                if (!el) return;
+                if (color && color.includes('gradient')) {
+                    el.style.color = '';
+                    el.style.backgroundImage = color;
+                    el.style.backgroundClip = 'text';
+                    el.style.webkitBackgroundClip = 'text';
+                    el.style.webkitTextFillColor = 'transparent';
+                    el.querySelectorAll('*').forEach(child => {
+                        if (child.tagName !== 'INPUT' && child.tagName !== 'BUTTON' && child.tagName !==
+                            'SELECT') {
+                            child.style.color = '';
+                            child.style.backgroundImage = color;
+                            child.style.backgroundClip = 'text';
+                            child.style.webkitBackgroundClip = 'text';
+                            child.style.webkitTextFillColor = 'transparent';
+                        }
+                    });
+                } else {
+                    el.style.color = color || '#222222';
+                    el.style.backgroundImage = 'none';
+                    el.style.backgroundClip = 'unset';
+                    el.style.webkitBackgroundClip = 'unset';
+                    el.style.webkitTextFillColor = 'unset';
+                    el.querySelectorAll('*').forEach(child => {
+                        if (child.tagName !== 'INPUT' && child.tagName !== 'BUTTON' && child.tagName !==
+                            'SELECT') {
+                            child.style.color = color || '#222222';
+                            child.style.backgroundImage = 'none';
+                            child.style.backgroundClip = 'unset';
+                            child.style.webkitBackgroundClip = 'unset';
+                            child.style.webkitTextFillColor = 'unset';
+                        }
+                    });
+                }
+            }
+
+            // ============================================================
+            // 卡片相关
+            // ============================================================
+            function calcScale(item) {
+                const baseW = item.baseWidth || 130;
+                const baseH = item.baseHeight || 120;
+                const curW = item.width || baseW;
+                const curH = item.height || baseH;
+                return (curW / baseW + curH / baseH) / 2;
+            }
+
+            const musicPlayers = new Map();
+
+            // ============================================================
+            // 渲染卡片
+            // ============================================================
+            function renderItems() {
+                const container = document.getElementById('navContainer');
+                container.innerHTML = '';
+                config.items.forEach((item, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'nav-item';
+                    div.dataset.id = item.id;
+                    div.style.left = item.x + 'px';
+                    div.style.top = item.y + 'px';
+                    div.style.width = item.width + 'px';
+                    div.style.height = item.height + 'px';
+                    div.style.borderRadius = (item.borderRadius || 12) + 'px';
+                    if (item.textColor) applyColorToElement(div, item.textColor);
+                    const useGlass = config.glassEnabled && item.glassEnabled !== false;
+                    div.classList.toggle('no-glass', !useGlass);
+
+                    const delBtn = document.createElement('button');
+                    delBtn.className = 'del-btn';
+                    delBtn.innerText = '×';
+                    if (!config.showDeleteBtn) delBtn.classList.add('hidden');
+                    delBtn.onclick = function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (confirm(`删除「${item.name||item.type}」？`)) {
+                            if (item.type === 'music' && musicPlayers.has(item.id)) {
+                                const mp = musicPlayers.get(item.id);
+                                if (mp.audio) { mp.audio.pause();
+                                    mp.audio.src = ''; }
+                                if (mp.timer) { clearInterval(mp.timer); }
+                                musicPlayers.delete(item.id);
+                            }
+                            config.items = config.items.filter(i => i.id !== item.id);
+                            saveConfig();
+                            renderItems();
+                        }
+                    };
+
+                    const contentDiv = document.createElement('div');
+                    contentDiv.className = 'widget-content';
+                    const scale = calcScale(item);
+                    contentDiv.style.transform = `scale(${scale})`;
+
+                    // ---- 链接卡片 ----
+                    if (item.type === 'link') {
+                        const iconDiv = document.createElement('div');
+                        iconDiv.className = 'nav-icon';
+                        if (item.icon && item.icon.trim() !== '') {
+                            const iconVal = item.icon.trim();
+                            if (iconVal.startsWith('http://') || iconVal.startsWith('https://')) {
+                                const img = document.createElement('img');
+                                img.src = iconVal;
+                                img.alt = 'icon';
+                                img.onerror = function() {
+                                    this.outerHTML = iconVal.substring(0, 2);
+                                };
+                                iconDiv.appendChild(img);
+                            } else {
+                                iconDiv.textContent = iconVal;
+                            }
+                        } else {
+                            const favUrl = getFavicon(item.url);
+                            if (favUrl) {
+                                const img = document.createElement('img');
+                                img.src = favUrl;
+                                img.alt = 'icon';
+                                img.onerror = function() {
+                                    const fallbackUrl = getFaviconFallback(item.url);
+                                    if (fallbackUrl) {
+                                        this.src = fallbackUrl;
+                                        this.onerror = function() {
+                                            this.outerHTML = item.name.charAt(0).toUpperCase();
+                                        };
+                                    } else {
+                                        this.outerHTML = item.name.charAt(0).toUpperCase();
+                                    }
+                                };
+                                iconDiv.appendChild(img);
+                            } else {
+                                iconDiv.textContent = item.name.charAt(0).toUpperCase();
+                            }
+                        }
+                        const nameDiv = document.createElement('div');
+                        nameDiv.textContent = item.name;
+                        const link = document.createElement('a');
+                        link.href = item.url;
+                        link.target = '_blank';
+                        link.className = 'link-inner';
+                        link.style.color = 'inherit';
+                        link.appendChild(iconDiv);
+                        link.appendChild(nameDiv);
+                        contentDiv.appendChild(link);
+
+                        let clickTimer = null;
+                        const handleClick = function(e) {
+                            e.preventDefault();
+                            if (clickTimer) {
+                                clearTimeout(clickTimer);
+                                clickTimer = null;
+                                return;
+                            }
+                            clickTimer = setTimeout(() => {
+                                window.open(item.url, '_blank');
+                                clickTimer = null;
+                            }, 300);
+                        };
+                        link.addEventListener('click', handleClick);
+
+                        div.addEventListener('dblclick', function(e) {
+                            e.stopPropagation();
+                            if (clickTimer) {
+                                clearTimeout(clickTimer);
+                                clickTimer = null;
+                            }
+                            openCardSettings(item.id);
+                        });
+
+                        div._clickCleanup = function() {
+                            link.removeEventListener('click', handleClick);
+                            if (clickTimer) {
+                                clearTimeout(clickTimer);
+                                clickTimer = null;
+                            }
+                        };
+
+                        // ---- 便签 ----
+                    } else if (item.type === 'note') {
+                        const noteDiv = document.createElement('div');
+                        noteDiv.className = 'widget-note';
+                        noteDiv.textContent = item.content || '便签';
+                        noteDiv.style.color = 'inherit';
+                        noteDiv.addEventListener('dblclick', function(e) {
+                            e.stopPropagation();
+                            const newContent = prompt('修改便签内容：', this.textContent);
+                            if (newContent !== null) { item.content = newContent;
+                                this.textContent = newContent;
+                                saveConfig(); }
+                        });
+                        contentDiv.appendChild(noteDiv);
+
+                        // ---- 天气 ----
+                    } else if (item.type === 'weather') {
+                        const weatherDiv = document.createElement('div');
+                        weatherDiv.className = 'widget-weather';
+                        weatherDiv.textContent = `☀️ ${item.city||'北京'} 26°C`;
+                        weatherDiv.style.color = 'inherit';
+                        contentDiv.appendChild(weatherDiv);
+
+                        // ---- 自定义HTML ----
+                    } else if (item.type === 'custom') {
+                        const iframe = document.createElement('iframe');
+                        iframe.sandbox = 'allow-scripts allow-same-origin';
+                        iframe.srcdoc = item.code || '<p>自定义内容</p>';
+                        iframe.style.width = '100%';
+                        iframe.style.height = '100%';
+                        iframe.style.border = 'none';
+                        iframe.style.background = 'transparent';
+                        contentDiv.appendChild(iframe);
+                        contentDiv.addEventListener('dblclick', function(e) {
+                            e.stopPropagation();
+                            const newCode = prompt('修改自定义代码：', item.code || '');
+                            if (newCode !== null) { item.code = newCode;
+                                iframe.srcdoc = newCode;
+                                saveConfig(); }
+                        });
+
+                        // ---- 音乐播放器 ----
+                    } else if (item.type === 'music') {
+                        const musicDiv = document.createElement('div');
+                        musicDiv.className = 'music-player';
+                        musicDiv.style.color = 'inherit';
+                        const songName = document.createElement('div');
+                        songName.className = 'song-name';
+                        const playlist = item.playlist || [];
+                        const currentIdx = item.currentIndex || 0;
+                        const currentSong = playlist[currentIdx] || null;
+                        songName.textContent = currentSong ? currentSong.name : '未选择音乐';
+                        songName.style.color = 'inherit';
+                        musicDiv.appendChild(songName);
+
+                        const controls = document.createElement('div');
+                        controls.className = 'controls';
+                        const prevBtn = document.createElement('button');
+                        prevBtn.textContent = '⏮';
+                        const playBtn = document.createElement('button');
+                        playBtn.textContent = item.isPlaying ? '⏸' : '▶️';
+                        const nextBtn = document.createElement('button');
+                        nextBtn.textContent = '⏭';
+                        controls.appendChild(prevBtn);
+                        controls.appendChild(playBtn);
+                        controls.appendChild(nextBtn);
+                        musicDiv.appendChild(controls);
+
+                        const progressWrap = document.createElement('div');
+                        progressWrap.className = 'progress-wrap';
+                        const timeLabel = document.createElement('span');
+                        timeLabel.className = 'time-label';
+                        timeLabel.textContent = '0:00';
+                        const progressBar = document.createElement('input');
+                        progressBar.type = 'range';
+                        progressBar.min = 0;
+                        progressBar.max = 100;
+                        progressBar.value = 0;
+                        const durationLabel = document.createElement('span');
+                        durationLabel.className = 'time-label';
+                        durationLabel.textContent = '0:00';
+                        progressWrap.appendChild(timeLabel);
+                        progressWrap.appendChild(progressBar);
+                        progressWrap.appendChild(durationLabel);
+                        musicDiv.appendChild(progressWrap);
+
+                        const lyricsArea = document.createElement('div');
+                        lyricsArea.className = 'lyrics-area';
+                        const lyricsScroll = document.createElement('div');
+                        lyricsScroll.className = 'lyrics-scroll';
+                        lyricsArea.appendChild(lyricsScroll);
+                        musicDiv.appendChild(lyricsArea);
+
+                        const fileBtn = document.createElement('button');
+                        fileBtn.className = 'file-btn';
+                        fileBtn.textContent = '📁 选择音乐';
+                        fileBtn.style.color = 'inherit';
+                        musicDiv.appendChild(fileBtn);
+
+                        contentDiv.appendChild(musicDiv);
+
+                        let audio = null,
+                            timer = null,
+                            lyricsData = [];
+
+                        function getAudio() {
+                            if (!audio) {
+                                audio = new Audio();
+                                audio.addEventListener('ended', function() { playNext(); });
+                                audio.addEventListener('timeupdate', function() {
+                                    if (audio && !audio.paused) {
+                                        const pct = audio.duration ? (audio.currentTime / audio
+                                            .duration * 100) : 0;
+                                        progressBar.value = pct;
+                                        timeLabel.textContent = formatTime(audio.currentTime);
+                                        updateLyrics(audio.currentTime);
+                                    }
+                                });
+                                div._audio = audio;
+                            }
+                            return audio;
+                        }
+
+                        function formatTime(sec) { const m = Math.floor(sec / 60);
+                            const s = Math.floor(sec % 60); return m + ':' + String(s).padStart(2, '0'); }
+
+                        function loadSong(idx) {
+                            const list = item.playlist || [];
+                            if (list.length === 0) { songName.textContent = '请选择音乐'; return; }
+                            if (idx < 0) idx = list.length - 1;
+                            if (idx >= list.length) idx = 0;
+                            item.currentIndex = idx;
+                            const song = list[idx];
+                            songName.textContent = song.name || '未知歌曲';
+                            const aud = getAudio();
+                            if (song.url) {
+                                aud.src = song.url;
+                                aud.load();
+                                if (song.lyrics) { lyricsData = song.lyrics;
+                                    renderLyrics(lyricsData); } else { lyricsData = [];
+                                    renderLyrics([]); }
+                                if (item.isPlaying) { aud.play().catch(() => {}); }
+                                aud.addEventListener('loadedmetadata', function() {
+                                    durationLabel.textContent = formatTime(aud.duration);
+                                });
+                            }
+                            saveConfig();
+                        }
+
+                        function renderLyrics(lyrics) {
+                            lyricsScroll.innerHTML = '';
+                            if (!lyrics || lyrics.length === 0) {
+                                const empty = document.createElement('div');
+                                empty.className = 'lyric-line';
+                                empty.textContent = '暂无歌词';
+                                empty.style.color = 'inherit';
+                                lyricsScroll.appendChild(empty);
+                                return;
+                            }
+                            for (let line of lyrics) {
+                                const el = document.createElement('div');
+                                el.className = 'lyric-line';
+                                el.textContent = line.text;
+                                el.style.color = 'inherit';
+                                el.dataset.time = line.time;
+                                lyricsScroll.appendChild(el);
+                            }
+                        }
+
+                        function updateLyrics(currentTime) {
+                            const lines = lyricsScroll.querySelectorAll('.lyric-line');
+                            if (!lines.length) return;
+                            let activeIndex = -1;
+                            for (let i = 0; i < lines.length; i++) {
+                                const t = parseFloat(lines[i].dataset.time);
+                                if (!isNaN(t) && t <= currentTime) activeIndex = i;
+                            }
+                            lines.forEach((el, idx) => { el.classList.toggle('active', idx === activeIndex); });
+                            if (activeIndex >= 0) {
+                                const activeEl = lines[activeIndex];
+                                const containerHeight = lyricsArea.clientHeight || 40;
+                                const elTop = activeEl.offsetTop;
+                                const elHeight = activeEl.offsetHeight || 20;
+                                const scrollTo = Math.max(0, elTop - containerHeight / 2 + elHeight / 2);
+                                lyricsScroll.style.transform = `translateY(-${scrollTo}px)`;
+                            }
+                        }
+
+                        function playNext() {
+                            const list = item.playlist || [];
+                            if (list.length === 0) return;
+                            let idx = (item.currentIndex || 0) + 1;
+                            if (idx >= list.length) idx = 0;
+                            loadSong(idx);
+                        }
+
+                        function playPrev() {
+                            const list = item.playlist || [];
+                            if (list.length === 0) return;
+                            let idx = (item.currentIndex || 0) - 1;
+                            if (idx < 0) idx = list.length - 1;
+                            loadSong(idx);
+                        }
+
+                        function togglePlay() {
+                            const aud = getAudio();
+                            if (item.isPlaying) {
+                                aud.pause();
+                                item.isPlaying = false;
+                                playBtn.textContent = '▶️';
+                            } else {
+                                if (aud.src) {
+                                    aud.play().catch(() => { if (item.playlist && item.playlist.length > 0)
+                                            loadSong(item.currentIndex || 0); });
+                                    item.isPlaying = true;
+                                    playBtn.textContent = '⏸';
+                                } else if (item.playlist && item.playlist.length > 0) {
+                                    loadSong(item.currentIndex || 0);
+                                    item.isPlaying = true;
+                                    playBtn.textContent = '⏸';
+                                }
+                            }
+                            saveConfig();
+                        }
+                        fileBtn.onclick = function(e) {
+                            e.stopPropagation();
+                            const input = document.createElement('input');
+                            input.type = 'file';
+                            input.multiple = true;
+                            input.accept = 'audio/*,.lrc';
+                            input.onchange = function() {
+                                const files = Array.from(this.files);
+                                const audioFiles = files.filter(f => f.type.startsWith('audio/') || ['mp3',
+                                        'wav', 'flac', 'm4a', 'ogg'
+                                    ].includes(getExt(f.name)));
+                                const lrcFiles = files.filter(f => getExt(f.name) === 'lrc');
+                                const newPlaylist = [];
+                                for (let af of audioFiles) {
+                                    const url = URL.createObjectURL(af);
+                                    let lyrics = null;
+                                    const baseName = af.name.replace(/\.[^.]+$/, '');
+                                    for (let lf of lrcFiles) {
+                                        if (lf.name.replace(/\.[^.]+$/, '') === baseName) {
+                                            const reader = new FileReader();
+                                            reader.onload = function(e) {
+                                                const parsed = parseLRC(e.target.result);
+                                                for (let song of newPlaylist) {
+                                                    if (song.name === af.name) {
+                                                        song.lyrics = parsed;
+                                                        if (item.currentIndex === newPlaylist
+                                                            .indexOf(song)) {
+                                                            lyricsData = parsed;
+                                                            renderLyrics(parsed);
+                                                        }
+                                                        break;
+                                                    }
+                                                }
+                                                saveConfig();
+                                            };
+                                            reader.readAsText(lf);
+                                            break;
+                                        }
+                                    }
+                                    newPlaylist.push({ name: af.name, url: url, lyrics: null });
+                                }
+                                if (newPlaylist.length === 0) { alert('请选择音乐文件'); return; }
+                                item.playlist = newPlaylist;
+                                item.currentIndex = 0;
+                                setTimeout(() => { loadSong(0); }, 100);
+                                saveConfig();
+                                renderItems();
+                            };
+                            input.click();
+                        };
+                        playBtn.onclick = function(e) { e.stopPropagation();
+                            togglePlay(); };
+                        prevBtn.onclick = function(e) { e.stopPropagation();
+                            playPrev(); };
+                        nextBtn.onclick = function(e) { e.stopPropagation();
+                            playNext(); };
+                        progressBar.oninput = function(e) {
+                            e.stopPropagation();
+                            const aud = getAudio();
+                            if (aud.duration) {
+                                const time = (this.value / 100) * aud.duration;
+                                aud.currentTime = time;
+                                timeLabel.textContent = formatTime(time);
+                            }
+                        };
+                        if (item.isPlaying) {
+                            setTimeout(() => {
+                                if (item.playlist && item.playlist.length > 0 && !audio) {
+                                    loadSong(item.currentIndex || 0);
+                                    const aud = getAudio();
+                                    aud.play().catch(() => {});
+                                }
+                            }, 200);
+                        }
+                        if (item.playlist && item.playlist.length > 0) {
+                            setTimeout(() => { loadSong(item.currentIndex || 0); }, 50);
+                        }
+                    }
+
+                    div.appendChild(contentDiv);
+                    div.appendChild(delBtn);
+
+                    // ---- 拖拽 ----
+                    let isDragging = false,
+                        startX, startY, origX, origY;
+                    let dragEndTime = 0;
+
+                    function onDragStart(e) {
+                        const point = e.touches ? e.touches[0] : e;
+                        isDragging = false;
+                        startX = point.clientX;
+                        startY = point.clientY;
+                        origX = parseInt(div.style.left) || 0;
+                        origY = parseInt(div.style.top) || 0;
+                        e.preventDefault();
+                    }
+
+                    function onDragMove(e) {
+                        if (!startX) return;
+                        const point = e.touches ? e.touches[0] : e;
+                        const dx = point.clientX - startX;
+                        const dy = point.clientY - startY;
+                        if (!isDragging && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) isDragging = true;
+                        if (isDragging) {
+                            e.preventDefault();
+                            let newX = origX + dx,
+                                newY = origY + dy;
+                            if (config.snapEnabled) {
+                                const snapThreshold = 20;
+                                let snapX = null,
+                                    snapY = null;
+                                config.items.forEach((other, idx) => {
+                                    if (idx === index) return;
+                                    const ox = other.x,
+                                        oy = other.y,
+                                        ow = other.width,
+                                        oh = other.height;
+                                    const cw = parseInt(div.style.width) || 130;
+                                    const ch = parseInt(div.style.height) || 120;
+                                    if (Math.abs(newX - ox) < snapThreshold) snapX = ox;
+                                    else if (Math.abs(newX + cw - (ox + ow)) < snapThreshold) snapX = ox +
+                                        ow - cw;
+                                    else if (Math.abs(newX - (ox + ow)) < snapThreshold) snapX = ox + ow;
+                                    else if (Math.abs(newX + cw - ox) < snapThreshold) snapX = ox - cw;
+                                    if (Math.abs(newY - oy) < snapThreshold) snapY = oy;
+                                    else if (Math.abs(newY + ch - (oy + oh)) < snapThreshold) snapY = oy +
+                                        oh - ch;
+                                    else if (Math.abs(newY - (oy + oh)) < snapThreshold) snapY = oy + oh;
+                                    else if (Math.abs(newY + ch - oy) < snapThreshold) snapY = oy - ch;
+                                });
+                                if (newX < snapThreshold) snapX = 0;
+                                if (newX + parseInt(div.style.width) > window.innerWidth - snapThreshold)
+                                    snapX = window.innerWidth - parseInt(div.style.width);
+                                if (newY < snapThreshold) snapY = 0;
+                                if (newY + parseInt(div.style.height) > window.innerHeight - 200 -
+                                    snapThreshold) snapY = window.innerHeight - 200 - parseInt(div.style
+                                    .height);
+                                if (snapX !== null) newX = snapX;
+                                if (snapY !== null) newY = snapY;
+                            }
+                            newX = Math.max(0, newX);
+                            newY = Math.max(0, newY);
+                            div.style.left = newX + 'px';
+                            div.style.top = newY + 'px';
+                            config.items[index].x = newX;
+                            config.items[index].y = newY;
+                            saveConfig();
+                        }
+                    }
+
+                    function onDragEnd(e) {
+                        if (isDragging) {
+                            config.items[index].x = parseInt(div.style.left) || 0;
+                            config.items[index].y = parseInt(div.style.top) || 0;
+                            saveConfig();
+                            dragEndTime = Date.now();
+                        }
+                        isDragging = false;
+                        startX = startY = null;
+                    }
+                    div.addEventListener('mousedown', onDragStart);
+                    document.addEventListener('mousemove', onDragMove);
+                    document.addEventListener('mouseup', onDragEnd);
+                    div.addEventListener('touchstart', onDragStart, { passive: false });
+                    document.addEventListener('touchmove', onDragMove, { passive: false });
+                    document.addEventListener('touchend', onDragEnd);
+
+                    div.addEventListener('click', function(e) {
+                        if (Date.now() - dragEndTime < 500) { e.preventDefault();
+                            e.stopPropagation(); }
+                    }, true);
+
+                    if (item.type !== 'link') {
+                        div.addEventListener('dblclick', function(e) {
+                            e.stopPropagation();
+                            openCardSettings(item.id);
+                        });
+                    }
+
+                    if (window.innerWidth <= 600) {
+                        div.addEventListener('click', function(e) {
+                            this.classList.toggle('touch-show');
+                        });
+                    }
+
+                    container.appendChild(div);
+                });
+            }
+
+            // ============================================================
+            // 卡片设置浮窗
+            // ============================================================
+            let currentEditingId = null;
+
+            function openCardSettings(id) {
+                const item = config.items.find(i => i.id === id);
+                if (!item) return;
+                currentEditingId = id;
+                const overlay = document.getElementById('cardSettingsOverlay');
+                overlay.classList.add('active');
+
+                document.getElementById('csWidth').value = item.width || 130;
+                document.getElementById('csHeight').value = item.height || 120;
+                document.getElementById('csRadius').value = item.borderRadius || 12;
+                document.getElementById('csGlass').checked = item.glassEnabled !== false;
+                const color = item.textColor || '#222222';
+                document.getElementById('csColorText').value = color;
+                const picker = document.getElementById('csColorPicker');
+                if (color.startsWith('#')) picker.value = color;
+                else picker.value = '#222222';
+                document.getElementById('csIcon').value = item.icon || '';
+                updateSliderLabels();
+                const presetBtns = document.querySelectorAll('#csColorPresets button');
+                presetBtns.forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.color === color);
+                });
+            }
+
+            function closeCardSettings() {
+                document.getElementById('cardSettingsOverlay').classList.remove('active');
+                currentEditingId = null;
+            }
+
+            function updateSliderLabels() {
+                document.getElementById('csWidthVal').textContent = document.getElementById('csWidth').value;
+                document.getElementById('csHeightVal').textContent = document.getElementById('csHeight').value;
+                document.getElementById('csRadiusVal').textContent = document.getElementById('csRadius').value;
+            }
+
+            function saveCardSettings() {
+                if (currentEditingId === null) return;
+                const item = config.items.find(i => i.id === currentEditingId);
+                if (!item) return;
+                const w = parseInt(document.getElementById('csWidth').value);
+                const h = parseInt(document.getElementById('csHeight').value);
+                const r = parseInt(document.getElementById('csRadius').value);
+                const glass = document.getElementById('csGlass').checked;
+                const color = document.getElementById('csColorText').value.trim();
+                const icon = document.getElementById('csIcon').value.trim();
+                item.width = w;
+                item.height = h;
+                item.borderRadius = r;
+                item.glassEnabled = glass;
+                item.textColor = color;
+                if (item.type === 'link') item.icon = icon;
+                saveConfig();
+                renderItems();
+                closeCardSettings();
+            }
+
+            document.getElementById('csWidth').addEventListener('input', updateSliderLabels);
+            document.getElementById('csHeight').addEventListener('input', updateSliderLabels);
+            document.getElementById('csRadius').addEventListener('input', updateSliderLabels);
+            document.querySelectorAll('#csColorPresets button').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const color = this.dataset.color;
+                    document.getElementById('csColorText').value = color;
+                    if (color.startsWith('#')) document.getElementById('csColorPicker').value = color;
+                    document.querySelectorAll('#csColorPresets button').forEach(b => b.classList.remove(
+                    'active'));
+                    this.classList.add('active');
+                });
+            });
+            document.getElementById('csColorPicker').addEventListener('input', function() {
+                document.getElementById('csColorText').value = this.value;
+                document.querySelectorAll('#csColorPresets button').forEach(b => b.classList.remove('active'));
+            });
+            document.getElementById('csColorText').addEventListener('input', function() {
+                const val = this.value.trim();
+                if (val.startsWith('#')) document.getElementById('csColorPicker').value = val;
+                document.querySelectorAll('#csColorPresets button').forEach(b => b.classList.remove('active'));
+            });
+            document.getElementById('csCancel').addEventListener('click', closeCardSettings);
+            document.getElementById('csSave').addEventListener('click', saveCardSettings);
+            document.getElementById('cardSettingsOverlay').addEventListener('click', function(e) {
+                if (e.target === this) closeCardSettings();
+            });
+
+            // ============================================================
+            // 日期颜色UI同步
+            // ============================================================
+            function updateDateColorUI() {
+                const color = config.dateTextColor || '#222222';
+                document.getElementById('dateColorText').value = color;
+                if (color.startsWith('#')) document.getElementById('dateColorPicker').value = color;
+                else document.getElementById('dateColorPicker').value = '#222222';
+                document.querySelectorAll('#dateColorPresets button').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.color === color);
+                });
+                const dateBox = document.getElementById('dateBox');
+                if (color) applyColorToElement(dateBox, color);
+            }
+
+            document.getElementById('dateColorText').addEventListener('input', function() {
+                const val = this.value.trim();
+                config.dateTextColor = val;
+                if (val.startsWith('#')) document.getElementById('dateColorPicker').value = val;
+                document.querySelectorAll('#dateColorPresets button').forEach(b => b.classList.remove('active'));
+                saveConfig();
+                const dateBox = document.getElementById('dateBox');
+                if (val) applyColorToElement(dateBox, val);
+            });
+            document.getElementById('dateColorPicker').addEventListener('input', function() {
+                const val = this.value;
+                document.getElementById('dateColorText').value = val;
+                config.dateTextColor = val;
+                document.querySelectorAll('#dateColorPresets button').forEach(b => b.classList.remove('active'));
+                saveConfig();
+                const dateBox = document.getElementById('dateBox');
+                applyColorToElement(dateBox, val);
+            });
+            document.querySelectorAll('#dateColorPresets button').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const color = this.dataset.color;
+                    document.getElementById('dateColorText').value = color;
+                    if (color.startsWith('#')) document.getElementById('dateColorPicker').value = color;
+                    config.dateTextColor = color;
+                    document.querySelectorAll('#dateColorPresets button').forEach(b => b.classList.remove(
+                        'active'));
+                    this.classList.add('active');
+                    saveConfig();
+                    const dateBox = document.getElementById('dateBox');
+                    applyColorToElement(dateBox, color);
+                });
+            });
+
+            // ============================================================
+            // 日期时间统一/单独修改开关
+            // ============================================================
+            document.getElementById('dateTimeUnified').addEventListener('change', function() {
+                config.dateTimeUnified = this.checked;
+                if (this.checked) {
+                    config.timeFontWeight = config.dateFontWeight;
+                }
+                saveConfig();
+                applyStylesOnly();
+            });
+
+            document.getElementById('dateFontWeight').addEventListener('change', function() {
+                config.dateFontWeight = this.value;
+                if (config.dateTimeUnified !== false) {
+                    config.timeFontWeight = this.value;
+                }
+                saveConfig();
+                applyStylesOnly();
+            });
+
+            document.getElementById('timeFontWeight').addEventListener('change', function() {
+                config.timeFontWeight = this.value;
+                saveConfig();
+                applyStylesOnly();
+            });
+
+            // ============================================================
+            // 日期双击修改颜色
+            // ============================================================
+            document.getElementById('dateBox').addEventListener('dblclick', function(e) {
+                e.stopPropagation();
+                const curColor = config.dateTextColor || '#222222';
+                const colorInput = prompt(
+                    '顶部文字颜色（纯色/渐变/炫彩）：\n示例: #ff0000 或 rainbow',
+                    curColor
+                );
+                if (colorInput !== null && colorInput.trim()) {
+                    let val = colorInput.trim();
+                    const presets = {
+                        rainbow: 'linear-gradient(90deg, #ff0000, #ff7700, #ffff00, #00ff00, #0000ff, #8b00ff, #ff0000)',
+                        rainbow2: 'linear-gradient(135deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3, #54a0ff, #ff6b6b)',
+                        neon: 'linear-gradient(90deg, #ff00ff, #00ffff, #ff00ff)',
+                        sunset: 'linear-gradient(90deg, #f7971e, #ffd200)',
+                        ocean: 'linear-gradient(90deg, #2193b0, #6dd5ed)'
+                    };
+                    if (presets[val]) val = presets[val];
+                    config.dateTextColor = val;
+                    applyColorToElement(this, val);
+                    document.getElementById('dateColorText').value = val;
+                    if (val.startsWith('#')) document.getElementById('dateColorPicker').value = val;
+                    document.querySelectorAll('#dateColorPresets button').forEach(b => b.classList.remove('active'));
+                    saveConfig();
+                }
+            });
+
+            // ============================================================
+            // 页面标题设置
+            // ============================================================
+            document.getElementById('pageTitleInput').addEventListener('input', function() {
+                const val = this.value.trim() || '个人本地导航';
+                config.pageTitle = val;
+                document.title = val;
+                saveConfig();
+            });
+
+            // ============================================================
+            // 全量刷新（样式 + 背景 + 卡片）
+            // ============================================================
+            async function applyFull() {
+                applyStylesOnly();
+                renderItems();
+                updateDateColorUI();
+                updateTopTime();
+                await renderBackground();
+            }
+
+            // ============================================================
+            // 顶部时间更新
+            // ============================================================
+            function updateTopTime() {
+                const now = new Date();
+                const week = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'][now.getDay()];
+                const y = now.getFullYear();
+                const mon = String(now.getMonth() + 1).padStart(2, '0');
+                const d = String(now.getDate()).padStart(2, '0');
+                document.getElementById('topDate').innerText = `${y}年${mon}月${d}日 ${week}`;
+                const h = String(now.getHours()).padStart(2, '0');
+                const m = String(now.getMinutes()).padStart(2, '0');
+                const s = String(now.getSeconds()).padStart(2, '0');
+                document.getElementById('topTime').innerText = `${h}:${m}:${s}`;
+            }
+            setInterval(updateTopTime, 1000);
+
+            // ============================================================
+            // 添加卡片
+            // ============================================================
+            function addItem(itemData) {
+                let baseX = 450,
+                    baseY = 320;
+                const used = config.items.map(i => ({ x: i.x, y: i.y, w: i.width || 130, h: i.height || 120 }));
+                let attempt = 0,
+                    newX = baseX,
+                    newY = baseY;
+                while (attempt < 50) {
+                    let overlap = false;
+                    for (let pos of used) {
+                        if (Math.abs(newX - pos.x) < pos.w && Math.abs(newY - pos.y) < pos.h) { overlap = true; break; }
+                    }
+                    if (!overlap) break;
+                    newX += 50;
+                    newY += 40;
+                    attempt++;
+                    if (newX > window.innerWidth - 200) { newX = 50;
+                        newY += 100; }
+                }
+                const defaultW = parseInt(getComputedStyle(document.documentElement).getPropertyValue(
+                    '--link-card-width')) || 130;
+                const defaultH = 120;
+                const newItem = {
+                    id: nextId++,
+                    type: itemData.type || 'link',
+                    x: newX,
+                    y: newY,
+                    width: itemData.width || defaultW,
+                    height: itemData.height || defaultH,
+                    baseWidth: itemData.width || defaultW,
+                    baseHeight: itemData.height || defaultH,
+                    borderRadius: itemData.borderRadius || 12,
+                    glassEnabled: true,
+                    textColor: '#222222',
+                    ...itemData
+                };
+                if (newItem.type === 'link' && newItem.icon === undefined) newItem.icon = '';
+                if (newItem.type === 'music') {
+                    newItem.playlist = [];
+                    newItem.currentIndex = 0;
+                    newItem.isPlaying = false;
+                    newItem.name = '音乐播放器';
+                }
+                config.items.push(newItem);
+                saveConfig();
+                renderItems();
+                return newItem;
+            }
+
+            // ============================================================
+            // 背景上传（重构：支持图片和视频）
+            // ============================================================
+            async function handleBgUpload(file, isLight) {
+                if (!file) return;
+                try {
+                    const key = 'bg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+                    await saveFileToDB(key, file, file.type);
+
+                    const theme = isLight ? 'light' : 'dark';
+                    const oldKey = isLight ? config.lightBgKey : config.darkBgKey;
+
+                    revokeObject(theme);
+                    if (oldKey) await deleteFileFromDB(oldKey).catch(() => {});
+
+                    if (isLight) {
+                        config.lightBgKey = key;
+                        config.lightBgType = file.type;
+                        config.lightBg = '';
+                    } else {
+                        config.darkBgKey = key;
+                        config.darkBgType = file.type;
+                        config.darkBg = '';
+                    }
+                    saveConfig();
+
+                    // 加载并渲染新背景
+                    const bg = await loadBackgroundFromIDB(theme);
+                    await renderBackground();
+
+                    // 显示成功反馈
+                    const statusId = isLight ? 'lightBgStatus' : 'darkBgStatus';
+                    const statusEl = document.getElementById(statusId);
+                    if (statusEl) {
+                        const isVideo = file.type.startsWith('video/');
+                        const icon = isVideo ? '🎬' : '🖼️';
+                        statusEl.textContent = `${icon} 已上传: ${file.name} (${file.type})`;
+                        statusEl.style.color = '#4a9eff';
+                        setTimeout(() => {
+                            if (bg && bg.url) {
+                                const shortType = file.type.replace('video/', '').replace('image/', '').split(
+                                ';')[0] || '文件';
+                                statusEl.textContent = `${icon} 已加载: ${shortType} (${isVideo ? '视频' : '图片'})`;
+                            }
+                        }, 1000);
+                    }
+
+                } catch (e) {
+                    alert('背景保存失败：' + e.message);
+                    console.error(e);
+                }
+            }
+
+            // ============================================================
+            // 事件绑定
+            // ============================================================
+
+            document.getElementById('searchForm').onsubmit = function(e) {
+                e.preventDefault();
+                const keyword = document.getElementById('searchInput').value.trim();
+                if (!keyword) return;
+                const engine = document.getElementById('searchEngine').value;
+                const url = engine === 'bing' ? `https://cn.bing.com/search?q=${encodeURIComponent(keyword)}` :
+                    `https://www.baidu.com/s?wd=${encodeURIComponent(keyword)}`;
+                window.location.href = url;
+            };
+            document.getElementById('searchEngine').addEventListener('change', function() {
+                config.searchEngine = this.value;
+                saveConfig();
+            });
+
+            const rangeInputs = document.querySelectorAll('input[type="range"]');
+            const debounceSave = debounce(saveConfig, 400);
+            rangeInputs.forEach(input => {
+                input.addEventListener('input', function() {
+                    const id = this.id,
+                        val = this.value;
+                    switch (id) {
+                        case 'bgBlur':
+                            config.bgBlur = parseFloat(val);
+                            break;
+                        case 'bgOpacity':
+                            config.bgOpacity = parseFloat(val);
+                            break;
+                        case 'bgGlass':
+                            config.bgGlass = parseFloat(val);
+                            break;
+                        case 'cardBlur':
+                            config.cardBlur = parseFloat(val);
+                            break;
+                        case 'searchWidth':
+                            config.searchWidth = parseFloat(val);
+                            break;
+                        case 'searchHeight':
+                            config.searchHeight = parseFloat(val);
+                            break;
+                        case 'searchRadius':
+                            config.searchRadius = parseFloat(val);
+                            break;
+                        case 'searchOffsetX':
+                            config.searchOffsetX = parseFloat(val);
+                            break;
+                        case 'searchOffsetY':
+                            config.searchOffsetY = parseFloat(val);
+                            break;
+                        case 'engineWidth':
+                            config.engineWidth = parseFloat(val);
+                            break;
+                        case 'calendarFont':
+                            config.calendarFont = parseFloat(val);
+                            break;
+                        case 'linkCardWidth':
+                            config.linkCardWidth = parseFloat(val);
+                            break;
+                        case 'linkIconSize':
+                            config.linkIconSize = parseFloat(val);
+                            break;
+                    }
+                    const valSpan = document.getElementById(id + 'Val');
+                    if (valSpan) valSpan.textContent = val;
+                    applyStylesOnly();
+                    debounceSave();
+                });
+            });
+
+            document.getElementById('topDisplay').addEventListener('change', function() {
+                config.topDisplay = this.value;
+                saveConfig();
+                applyStylesOnly();
+            });
+
+            document.getElementById('showEngine').addEventListener('change', function() {
+                config.showEngine = this.checked;
+                saveConfig();
+                applyStylesOnly();
+            });
+            document.getElementById('glassToggle').addEventListener('change', function() {
+                config.glassEnabled = this.checked;
+                saveConfig();
+                renderItems();
+                applyStylesOnly();
+            });
+            document.getElementById('showDeleteBtn').addEventListener('change', function() {
+                config.showDeleteBtn = this.checked;
+                saveConfig();
+                renderItems();
+            });
+            document.getElementById('snapToggle').addEventListener('change', function() {
+                config.snapEnabled = this.checked;
+                saveConfig();
+            });
+
+            document.getElementById('lightBgFile').onchange = function(e) {
+                if (this.files[0]) handleBgUpload(this.files[0], true);
+                this.value = '';
+            };
+            document.getElementById('darkBgFile').onchange = function(e) {
+                if (this.files[0]) handleBgUpload(this.files[0], false);
+                this.value = '';
+            };
+
+            document.getElementById('addLinkBtn').onclick = function() {
+                const name = document.getElementById('linkName').value.trim();
+                const url = document.getElementById('linkUrl').value.trim();
+                const icon = document.getElementById('linkIcon').value.trim();
+                if (!name) return alert('请输入名称');
+                if (!url || !isValidUrl(url)) return alert('请输入有效网址');
+                addItem({ type: 'link', name, url, icon });
+                document.getElementById('linkName').value = '';
+                document.getElementById('linkUrl').value = '';
+                document.getElementById('linkIcon').value = '';
+            };
+
+            document.getElementById('addWidgetBtn').onclick = function() {
+                const type = document.getElementById('widgetType').value;
+                let data = { type };
+                if (type === 'note') {
+                    data.content = document.getElementById('noteContent').value.trim() || '便签';
+                } else if (type === 'weather') {
+                    data.city = document.getElementById('weatherCity').value.trim() || '北京';
+                } else if (type === 'custom') {
+                    const code = document.getElementById('customCode').value.trim();
+                    if (!code) return alert('请粘贴HTML代码');
+                    data.code = code;
+                    data.name = '自定义';
+                } else if (type === 'music') {
+                    data.name = '音乐播放器';
+                    data.playlist = [];
+                    data.currentIndex = 0;
+                    data.isPlaying = false;
+                }
+                addItem(data);
+            };
+
+            document.getElementById('widgetType').addEventListener('change', function() {
+                const val = this.value;
+                document.getElementById('noteContent').style.display = val === 'note' ? 'block' : 'none';
+                document.getElementById('weatherCity').style.display = val === 'weather' ? 'block' : 'none';
+                document.getElementById('customArea').style.display = val === 'custom' ? 'block' : 'none';
+                document.getElementById('musicArea').style.display = val === 'music' ? 'block' : 'none';
+            });
+            document.getElementById('noteContent').style.display = 'block';
+            document.getElementById('weatherCity').style.display = 'none';
+            document.getElementById('customArea').style.display = 'none';
+            document.getElementById('musicArea').style.display = 'none';
+
+            document.getElementById('customFile').addEventListener('change', function(e) {
+                const file = this.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = function(res) { document.getElementById('customCode').value = res.target.result; };
+                reader.readAsText(file);
+            });
+
+            document.getElementById('themeToggle').onclick = function() {
+                config.theme = config.theme === 'light' ? 'dark' : 'light';
+                saveConfig();
+                applyStylesOnly();
+                renderBackground();
+            };
+
+            document.getElementById('minimalMode').onclick = function() {
+                config.minimal = !config.minimal;
+                saveConfig();
+                applyStylesOnly();
+            };
+
+            const panel = document.getElementById('settingPanel');
+            document.getElementById('openSetting').onclick = function(e) {
+                e.stopPropagation();
+                panel.classList.toggle('open');
+            };
+            document.getElementById('closeSetting').onclick = function() { panel.classList.remove('open'); };
+            document.addEventListener('click', function(e) {
+                if (panel.classList.contains('open') && !panel.contains(e.target) && !e.target.closest(
+                        '#openSetting')) {
+                    panel.classList.remove('open');
+                }
+            });
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && panel.classList.contains('open')) panel.classList.remove('open');
+            });
+
+            document.getElementById('exportBtn').onclick = function() {
+                const exportConfig = JSON.parse(JSON.stringify(config));
+                exportConfig.lightBgKey = null;
+                exportConfig.darkBgKey = null;
+                exportConfig.lightBgType = null;
+                exportConfig.darkBgType = null;
+                exportConfig.lightBg = '';
+                exportConfig.darkBg = '';
+                exportConfig.items = exportConfig.items.map(item => {
+                    if (item.type === 'music') {
+                        const copy = { ...item };
+                        if (copy.playlist) {
+                            copy.playlist = copy.playlist.map(song => ({ name: song.name, lyrics: song
+                                    .lyrics || null }));
+                        }
+                        return copy;
+                    }
+                    return item;
+                });
+                const blob = new Blob([JSON.stringify(exportConfig, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = '导航配置备份.json';
+                a.click();
+                URL.revokeObjectURL(url);
+            };
+            document.getElementById('importBtn').onclick = function() { document.getElementById('importFile').click(); };
+            document.getElementById('importFile').onchange = function(e) {
+                const file = this.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = function(res) {
+                    try {
+                        const imported = JSON.parse(res.target.result);
+                        if (typeof imported !== 'object' || !Array.isArray(imported.items)) throw new Error(
+                            '格式无效');
+                        const oldLightKey = config.lightBgKey;
+                        const oldDarkKey = config.darkBgKey;
+                        config = Object.assign({}, config, imported);
+                        config.lightBgKey = oldLightKey;
+                        config.darkBgKey = oldDarkKey;
+                        config.items = config.items.filter(i => i && typeof i === 'object');
+                        config.items.forEach(item => {
+                            if (!item.baseWidth) item.baseWidth = item.width || 130;
+                            if (!item.baseHeight) item.baseHeight = item.height || 120;
+                            if (item.glassEnabled === undefined) item.glassEnabled = true;
+                            if (!item.textColor) item.textColor = '#222222';
+                            if (item.type === 'link' && item.icon === undefined) item.icon = '';
+                            if (item.type === 'music') {
+                                if (!item.playlist) item.playlist = [];
+                                if (item.currentIndex === undefined) item.currentIndex = 0;
+                                if (item.isPlaying === undefined) item.isPlaying = false;
+                            }
+                        });
+                        let maxId = 0;
+                        config.items.forEach(i => { if (i.id > maxId) maxId = i.id; });
+                        nextId = maxId + 1;
+                        saveConfig();
+                        applyFull();
+                        alert('导入成功！');
+                    } catch (err) { alert('导入失败：' + err.message); }
+                };
+                reader.readAsText(file);
+                this.value = '';
+            };
+
+            // ============================================================
+            // 快速栏自动隐藏
+            // ============================================================
+            const quickBar = document.getElementById('quickBar');
+            let hideTimer = null;
+            document.addEventListener('mousemove', function() {
+                quickBar.classList.remove('hide');
+                clearTimeout(hideTimer);
+                hideTimer = setTimeout(() => quickBar.classList.add('hide'), 3000);
+            });
+            quickBar.addEventListener('mouseenter', function() {
+                clearTimeout(hideTimer);
+            });
+            quickBar.addEventListener('mouseleave', function() {
+                clearTimeout(hideTimer);
+                hideTimer = setTimeout(() => quickBar.classList.add('hide'), 1000);
+            });
+
+            // ============================================================
+            // 启动
+            // ============================================================
+            applyFull().then(() => {
+                console.log('🎯 个人本地导航已加载');
+                console.log('💡 支持背景格式: 图片 (jpg, png, gif, webp, svg, bmp) 和视频 (mp4, webm, ogg, mov)');
+                console.log('💡 单击链接延迟0.3秒，给双击留出时间');
+                console.log('💡 快速栏鼠标离开1秒后自动隐藏');
+                console.log('💡 双击顶部可快速修改文字颜色');
+            });
+        });
+    </script>
+</body>
+</html>
